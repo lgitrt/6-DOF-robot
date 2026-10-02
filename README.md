@@ -9,13 +9,12 @@ integration.
 ## Overview
 
 This repository documents the full software stack behind the arm, from the low-level Arduino
-firmware up to the operator GUIs and ROS teleoperation. Each part of the stack lives in its own
+firmware up to the operator GUI and ROS teleoperation. Each part of the stack lives in its own
 top-level folder:
 
 | Folder | What it is |
 |---|---|
-| [`qt_gui/`](qt_gui/) | **Current** operator GUI — Qt 6 / QML app running on a Raspberry Pi |
-| [`python_gui/`](python_gui/) | Legacy PyQt5 desktop controller, superseded by `qt_gui/` |
+| [`python_gui/`](python_gui/) | Desktop operator GUI (PyQt5) — serial link to the Arduino, numerical inverse kinematics, live 3D visualization, and motion record/replay |
 | [`firmware/`](firmware/) | Arduino Mega 2560 sketches for stepper motion and encoder feedback |
 | [`ros2/`](ros2/) | **Current** ROS 2 keyboard teleoperation node |
 | [`ros1_legacy/`](ros1_legacy/) | Legacy ROS 1 teleop prototype, superseded by `ros2/` |
@@ -23,18 +22,16 @@ top-level folder:
 
 ## Features
 
-- **Joint-space & task-space control** panels with live sliders, numeric entry, and a one-click
-  "set"/"reset" workflow per joint.
-- **Serial communication panel** for connecting to the Arduino Mega 2560 over USB/UART with live
-  connection-status indicators.
-- **Embedded RViz view** for real-time visualization of the arm's kinematic state.
-- **ROS 2 keyboard teleoperation node** publishing incremental `sensor_msgs/JointState` commands,
-  sharing the same command interface as the GUI.
-- **Numerical & closed-form inverse kinematics** resolving task-space targets to the six joint
-  angles (see `docs/inverse_kinematics/`).
+- **Joint-space & task-space control** panel (`python_gui/`) with live sliders, numeric entry, and
+  a one-click "set"/"reset" workflow per joint, talking to the Arduino Mega 2560 over serial.
+- **Numerical inverse kinematics** via [IKPY](https://github.com/Phylliade/ikpy), resolving
+  task-space targets (x, y, z, phi, theta, psi) to the six joint angles, with a live embedded 3D
+  plot of the resulting arm pose.
+- **ROS 2 keyboard teleoperation node** publishing incremental `sensor_msgs/JointState` commands
+  that the micro-ROS firmware on the Arduino consumes directly.
 - **Closed-loop control architecture** with AS5600 magnetic encoders feeding position/velocity
   corrections back to the firmware.
-- **Teach-in mode** for recording and replaying joint-space waypoints.
+- **Teach-in mode**: record a motion by hand (motors disabled) and replay it at a controlled speed.
 
 | | |
 |---|---|
@@ -42,9 +39,8 @@ top-level folder:
 | **Inspired by** | ABB IRB 1100 |
 | **Actuation** | 6x stepper motors |
 | **Low-level control** | Arduino Mega 2560 |
-| **Inverse kinematics** | Raspberry Pi, numerical (cyclic coordinate descent) + closed-form (DH-based) |
-| **Interfaces** | Custom Qt/QML GUI, micro-ROS / ROS 2, keyboard teleop |
-| **GUI framework** | Qt 6 / QML (Qt Design Studio) |
+| **Inverse kinematics** | Raspberry Pi, numerical (IKPY) + closed-form (DH-based) |
+| **Interfaces** | PyQt5 desktop GUI, micro-ROS / ROS 2, keyboard teleop |
 
 ## Progress log
 
@@ -60,13 +56,7 @@ top-level folder:
 
 ```
 6-DOF-robot/
-├── qt_gui/                       # Current Qt/QML operator GUI
-│   ├── content/                  # QML screens (Screen01.ui.qml is the main operator screen)
-│   ├── imports/Robot_GUI2/       # Shared QML singletons/components (Constants, font loader, ...)
-│   ├── src/                      # C++ application entry point (Qt Quick bootstrap)
-│   ├── main.qml, CMakeLists.txt  # App entry point and build definition
-│   └── ...                       # Qt Design Studio project/support files
-├── python_gui/                   # Legacy PyQt5 desktop controller + robot URDF
+├── python_gui/                   # Desktop operator GUI (PyQt5 + IKPY) and the robot URDF
 ├── firmware/                     # Arduino sketches (stepper control, encoders, FOC test)
 │   ├── multi_axis_stepper_accelstepper/
 │   ├── multi_axis_stepper_flexystepper/
@@ -88,18 +78,20 @@ top-level folder:
 > the full gallery is available on the
 > [project page](https://lucaobwegs.com/6-dof-robotic-arm/).
 
-## Building the Qt/QML GUI
+## Running the GUI
 
-Requirements: Qt 6.2+ (Qt 6.5 recommended), CMake 3.21+, and a C++ compiler toolchain.
+Requirements: Python 3.9+, [IKPY](https://github.com/Phylliade/ikpy), PyQt5, pyserial, matplotlib,
+numpy.
 
 ```bash
-cmake -B build -S qt_gui
-cmake --build build
+cd python_gui
+pip install ikpy pyqt5 pyserial matplotlib numpy
+python main.py
 ```
 
-The resulting `Robot_GUI2App` binary loads `qt_gui/main.qml`, which hosts
-`qt_gui/content/Screen01.ui.qml` — the main operator screen with the serial connection panel,
-joint-space/task-space controls, and the embedded RViz frame.
+On start-up the app connects to the Arduino Mega over the serial port configured in `main.py`
+(`COM7` by default), loads `arm_urdf.urdf` for inverse kinematics, and opens the controller window
+shown in the gallery below.
 
 ## Running the ROS 2 keyboard teleop node
 
@@ -128,8 +120,6 @@ Arduino Mega 2560 sketches under [firmware/](firmware/), built with the Arduino 
 
 ## Legacy components (kept for reference)
 
-- **[`python_gui/`](python_gui/)** — the original PyQt5 desktop controller (`main.py`,
-  `robot_gui.py/.ui`) used before the Qt/QML GUI, together with the arm's URDF (`arm_urdf.urdf`).
 - **[`ros1_legacy/legacy_task_space_teleop.py`](ros1_legacy/legacy_task_space_teleop.py)** — an
   early ROS 1 task-space teleop script (adapted from the open-source `teleop_twist_keyboard`
   package), superseded by the ROS 2 node in `ros2/`.
