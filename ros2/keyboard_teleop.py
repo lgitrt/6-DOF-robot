@@ -9,7 +9,7 @@ position commands as a `sensor_msgs/msg/JointState` message on the
 `/joint_commands` topic. The on-board micro-ROS agent running on the
 Arduino Mega 2560 subscribes to this topic and drives the six stepper
 joints accordingly, so the same message interface is shared with the
-teach-in GUI (`content/Screen01.ui.qml`).
+teach-in GUI (`qt_gui/content/Screen01.ui.qml`).
 
 Controls
 --------
