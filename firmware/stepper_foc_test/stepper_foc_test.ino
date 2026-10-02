@@ -9,58 +9,43 @@ void selectEncoder(uint8_t bus){
   Wire.endTransmission();
 }
 
-
-
-//sensor
+// Magnetic position sensor
 MagneticSensorI2C sensor = MagneticSensorI2C(AS5600_I2C);
 
 // Stepper driver instance
 StepperMotor motor = StepperMotor(8, 10);
 StepperDriver4PWM driver = StepperDriver4PWM(29, 31, 33, 35, 7, 8);
 
-
-
-
 void setup() {
-
-  // initialize magnetic sensor hardware
+  // Initialize the magnetic position sensor on the TCA9548A mux channel used by this joint.
   selectEncoder(7);
   sensor.init();
   selectEncoder(7);
 
-  // pwm frequency to be used [Hz]
+  // PWM frequency to be used [Hz]
   driver.pwm_frequency = 20000;
-  // power supply voltage [V]
+  // Power supply voltage [V]
   driver.voltage_power_supply = 12;
   // Max DC voltage allowed - default voltage_power_supply
   driver.voltage_limit = 12;
-  
-  // driver init
+
   driver.init();
 
-  // init sensor
-  // link the motor to the sensor
-  /*motor.linkSensor(&sensor);
+  // NOTE: this sketch only verified the sensor/driver initialization above.
+  // Closing the FOC velocity loop (motor.linkSensor/linkDriver/init/initFOC
+  // below, and motor.loopFOC()/move() in loop()) was not completed - FOC
+  // control of a stepper joint was explored as a feasibility study and not
+  // adopted for the final design, so this code is left commented out as a
+  // starting point for anyone revisiting the idea.
 
-  // init driver
-  // link the motor to the driver
-  motor.linkDriver(&driver);
-  
-  // set control loop type to be used
-  motor.controller = MotionControlType::velocity;
-  // initialize motor
-  motor.init();*/
-
-
-  // align encoder and start FOC
-  //motor.initFOC();
+  // motor.linkSensor(&sensor);
+  // motor.linkDriver(&driver);
+  // motor.controller = MotionControlType::velocity;
+  // motor.init();
+  // motor.initFOC();
 }
 
 void loop() {
-  // FOC algorithm function
-  //motor.loopFOC();
-
-  // velocity control loop function
-  // setting the target velocity or 2rad/s
-  //motor.move(2);
+  // motor.loopFOC();
+  // motor.move(2); // target velocity in rad/s
 }

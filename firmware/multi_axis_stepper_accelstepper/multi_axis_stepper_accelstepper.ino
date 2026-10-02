@@ -357,7 +357,6 @@ void moveXYWithCoordination(long steps1, long steps2,long steps3, long steps4,lo
 
 void enable_motors() {
   digitalWrite(EN_A1, LOW);digitalWrite(EN_A2, LOW);digitalWrite(EN_A3, HIGH);digitalWrite(EN_A4, LOW);digitalWrite(EN_A5, LOW);digitalWrite(EN_A6, LOW);
-  //digitalWrite(EN_A1, HIGH);digitalWrite(EN_A2, HIGH);digitalWrite(EN_A3, LOW);digitalWrite(EN_A4, HIGH);digitalWrite(EN_A5, HIGH);digitalWrite(EN_A6, LOW);
 }
 
 void disable_motors() {

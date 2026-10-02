@@ -12,27 +12,20 @@
 
 AS5600 as5600;   //  use default Wire
 
-//Axis1
-//AccelStepper stepper1(1, 43, 45);
+// Per-axis gear ratio (i*) and microstepping (MS*) constants, and the running
+// position/velocity state used by the low-pass filter in calcPosAndVel().
+// Axes 1-5 are read-only here (no stepper attached); axis 6 is also driven as
+// the test actuator below.
 int32_t pos1 = 0; int32_t lastPos1 = 0; int32_t vel1 = 0; int32_t lastVel1 = 0; int32_t deltaA1 = 0; int32_t zeroShift1 = 0; double i1 = 2.35; int MS1 = 16;
-//Axis2
-//AccelStepper stepper2(1, 41, 39);
 int32_t pos2 = 0; int32_t lastPos2 = 0; int32_t vel2 = 0; int32_t lastVel2 = 0; int32_t deltaA2 = 0; int32_t zeroShift2 = 0; double i2 = 3.75; int MS2 = 16;
-//Axis3
-//AccelStepper stepper3(1, 32, 47);
 int32_t pos3 = 0; int32_t lastPos3 = 0; int32_t vel3 = 0; int32_t lastVel3 = 0; int32_t deltaA3 = 0; int32_t zeroShift3 = 0; double i3 = 5; int MS3 = 32;
-//Axis4
-//AccelStepper stepper4(1, A0, A1);
-#define EN_A4 38
 int32_t pos4 = 0; int32_t lastPos4 = 0; int32_t vel4 = 0; int32_t lastVel4 = 0; int32_t deltaA4 = 0; int32_t zeroShift4 = 0; double i4 = -2.8; int MS4 = 16;
-//Axis5
-//AccelStepper stepper5(1, 46, 48);
-#define EN_A5 A8
 int32_t pos5 = 0; int32_t lastPos5 = 0; int32_t vel5 = 0; int32_t lastVel5 = 0; int32_t deltaA5 = 0; int32_t zeroShift5 = 0; double i5 = -2.1; int MS5 = 16;
-//Axis6
-AccelStepper stepper6(1, A6, A7); 
+
+// Axis 6 (test actuator): driven step/direction via AccelStepper.
+AccelStepper stepper6(1, A6, A7);
 #define EN_A6 A2
-int32_t pos6 = 0; int32_t lastPos6 = 0; int32_t vel6 = 0; int32_t lastVel6 = 0; int32_t deltaA6 = 0; int32_t zeroShift6 = 0; double i6 = -1; int MS6 = 16; 
+int32_t pos6 = 0; int32_t lastPos6 = 0; int32_t vel6 = 0; int32_t lastVel6 = 0; int32_t deltaA6 = 0; int32_t zeroShift6 = 0; double i6 = -1; int MS6 = 16;
 
 
 int16_t value = 0;
@@ -42,8 +35,6 @@ int32_t deltaT = 0;
 
 //lowpass filter
 double a1 = 0.1; double a2 = 0.1; double a3 = 0.1; double a4 = 0.1; double a5 = 0.1; double a6 = 0.03;
-
-//control parameters
 
 void selectEncoder(uint8_t bus){
   Wire.beginTransmission(0x70);  // TCA9548A address is 0x70
@@ -55,23 +46,8 @@ void setup()
 {
   Serial.begin(2000000);
 
-  //steppers
-  //pinMode(EN_A4, OUTPUT);
-  //digitalWrite(EN_A4, LOW);
-  //pinMode(EN_A5, OUTPUT);
-  //digitalWrite(EN_A5, LOW);
   pinMode(EN_A6, OUTPUT);
   digitalWrite(EN_A6, LOW);
-  /*stepper1.setMaxSpeed(MS1*i1*10); //steps/s
-  stepper1.setAcceleration(MS1*i1*10); //steps/s^2
-  stepper2.setMaxSpeed(MS2*i2*10); //steps/s
-  stepper2.setAcceleration(MS2*i2*10); //steps/s^2
-  stepper3.setMaxSpeed(MS3*i3*10); //steps/s
-  stepper3.setAcceleration(MS3*i3*10); //steps/s^2
-  stepper4.setMaxSpeed(MS4*i4*10); //steps/s
-  stepper4.setAcceleration(MS4*i4*10); //steps/s^2
-  stepper5.setMaxSpeed(MS5*i5*10); //steps/s
-  stepper5.setAcceleration(MS5*i5*10); //steps/s^2*/
   stepper6.setMaxSpeed(MS6*i6*50); //steps/s
   stepper6.setAcceleration(MS6*i6*10); //steps/s^2
   stepper6.setCurrentPosition(0);
@@ -115,41 +91,15 @@ void loop()
 {
   calcPosAndVel();
 
-  /*Serial.print((pos1 - zeroShift1) * AS5600_RAW_TO_DEGREES / i1);
-  Serial.print("\t");
-  Serial.print((pos2 - zeroShift2) * AS5600_RAW_TO_DEGREES / i2);
-  Serial.print("\t");
-  Serial.print((pos3 - zeroShift3) * AS5600_RAW_TO_DEGREES / i3);
-  Serial.print("\t");
-  Serial.print((pos4 - zeroShift4) * AS5600_RAW_TO_DEGREES / i4);
-  Serial.print("\t");
-  Serial.print((pos5 - zeroShift5) * AS5600_RAW_TO_DEGREES / i5);
-  Serial.print("\t");
-  Serial.print((pos6 - zeroShift6) * AS5600_RAW_TO_DEGREES / i6);
-  Serial.println("\t");*/
-
-  //Serial.print(100);
-  /*Serial.print("\t");
-  Serial.print(vel1 * AS5600_RAW_TO_DEGREES / i1);
-  Serial.print("\t");
-  Serial.print(vel2 * AS5600_RAW_TO_DEGREES / i2);
-  Serial.print("\t");
-  Serial.print(vel3 * AS5600_RAW_TO_DEGREES / i3);
-  Serial.print("\t");
-  Serial.print(vel4 * AS5600_RAW_TO_DEGREES / i4);
-  Serial.print("\t");
-  Serial.print(vel5 * AS5600_RAW_TO_DEGREES / i5);*/
-  //Serial.print("\t");
+  // Report axis 6 encoder angle, commanded stepper angle, and the
+  // tracking error between them (deg) over serial.
   Serial.print((pos6 - zeroShift6) * AS5600_RAW_TO_DEGREES / i6);
   Serial.print("\t");
   Serial.print(stepper6.currentPosition()*360/(200*MS6));
   Serial.print("\t");
   float error = ((pos6 - zeroShift6) * AS5600_RAW_TO_DEGREES / i6 - stepper6.currentPosition()*360/(200*MS6));
   Serial.println(error);
-  //Serial.print("\t");
-  //Serial.println(-100);
 
-  //stepper6.setCurrentPosition(stepper6.currentPosition() - error);
   if (i<=180) {
     stepper6.moveTo((i-error)*i6*MS6*(float(0.5555555555556)));
     stepper6.run();

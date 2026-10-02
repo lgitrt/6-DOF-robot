@@ -1,8 +1,8 @@
 %Inverse Kinematics Calculation for Luca Robotic arm
 %Author: Luca Obwegs
 %Verison: 0.0
-clc; clear All;
-close All;
+clc; clear all;
+close all;
 
 %syms phi1 phi2 phi3 phi4 phi5 phi6 %rotation angles
 %syms d a c f h i %translations
@@ -91,8 +91,3 @@ for i=1:1:400
     refreshdata(fh, 'caller');
     pause(0.001)
 end
-
-
-
-
-

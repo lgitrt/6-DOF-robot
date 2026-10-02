@@ -10,33 +10,29 @@ Author: Luca Obwegs
 """
 
 import sys
-from tkinter.messagebox import showinfo
-import ikpy.chain
-from threading import *
 import time
+from threading import Thread
+
+import ikpy.chain
 import numpy as np
 import serial
-from scipy.spatial.transform import Rotation as R
-import numpy as np
-from PyQt5.QtWidgets import (
-    QApplication, QMainWindow
-)
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from robot_gui import Ui_MainWindow
 from PyQt5 import QtWidgets
-#from urdfpy import URDF
+from PyQt5.QtWidgets import QApplication, QMainWindow
+
+from robot_gui import Ui_MainWindow
+
 
 class Window(QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
-        
-             
-        #motion repeat list
-        self.mrLst = [] #contains the position that should be repeated
 
-        #plot
+        # Motion-repeat list: stores the recorded positions to be replayed.
+        self.mrLst = []
+
+        # 3D plot embedded in the RViz placeholder frame.
         self.fig = Figure()
         self.canvas = FigureCanvas(self.fig)
         self.ax = self.fig.add_subplot(111, projection='3d')
@@ -134,30 +130,17 @@ class Window(QMainWindow, Ui_MainWindow):
         #calc ik for zero position
         self.ik = self.my_chain.inverse_kinematics_frame(self.start_position, self.zero_pos, orientation_mode="all")
         self.init_position()
-        #test recording
-        #self.record(20,0.2)
-        #self.repeat()
 
-        #plt.ion()
-        #fig, self.ax = plot_utils.init_3d_figure()
         self.fig.tight_layout()
         self.my_chain.plot(self.ik, self.ax, target=None)
-        self.ax.set_xlim3d(-0.2, 0.2)
-        self.ax.set_ylim3d(-0.2, 0.2)
-        self.ax.set_zlim(0, 0.3)
+        self._reset_plot_axes()
         self.ax.view_init(20, 60)
-        self.ax.set_xlabel('X [m]')
-        self.ax.set_ylabel('Y [m]')
-        self.ax.set_zlabel('Z [m]')
-        self.ax.grid(False)
-        self.ax.xaxis.pane.fill = False
-        self.ax.yaxis.pane.fill = False
-        self.ax.zaxis.pane.fill = False
         self.pos_error = "Positional Error: " + str(0.0)
         self.ax.set_title(self.pos_error)
 
-    def calcInverseKinematics(self):
-        self.ax.cla() 
+    def _reset_plot_axes(self):
+        """Clear and re-apply the standard look (limits, labels, no panes) to the 3D plot."""
+        self.ax.cla()
         self.ax.set_xlim3d(-0.2, 0.2)
         self.ax.set_ylim3d(-0.2, 0.2)
         self.ax.set_zlim(0, 0.3)
@@ -168,6 +151,9 @@ class Window(QMainWindow, Ui_MainWindow):
         self.ax.xaxis.pane.fill = False
         self.ax.yaxis.pane.fill = False
         self.ax.zaxis.pane.fill = False
+
+    def calcInverseKinematics(self):
+        self._reset_plot_axes()
         rotation_matrix = self.rotation_matrix(self.phi_pos, self.theta_pos, self.psi_pos)
         self.target_position = [[rotation_matrix[0,0],  rotation_matrix[0,1],  rotation_matrix[0,2],  self.x_pos*self.mm2m],
                                 [rotation_matrix[2,0],  rotation_matrix[2,1],  rotation_matrix[2,2],  self.y_pos*self.mm2m], 
@@ -337,17 +323,7 @@ class Window(QMainWindow, Ui_MainWindow):
             if (self.ser.in_waiting > 0):
                     line = self.ser.readline().decode('utf-8').rstrip()
             if ((self.current_milli_time() - time_prev) > self.time_step*1000):
-                self.ax.cla() 
-                self.ax.set_xlim3d(-0.2, 0.2)
-                self.ax.set_ylim3d(-0.2, 0.2)
-                self.ax.set_zlim(0, 0.3)
-                self.ax.set_xlabel('X [m]')
-                self.ax.set_ylabel('Y [m]')
-                self.ax.set_zlabel('Z [m]')
-                self.ax.grid(False)
-                self.ax.xaxis.pane.fill = False
-                self.ax.yaxis.pane.fill = False
-                self.ax.zaxis.pane.fill = False
+                self._reset_plot_axes()
                 arr = line.split(',')
                 if (arr[0] == 'UartInitialized'):
                     arr = ['0', '0', '0', '0', '0', '0','0', '0', '0', '0', '0', '0']
@@ -397,17 +373,7 @@ class Window(QMainWindow, Ui_MainWindow):
 
         time.sleep(0.1)
         self.ser.write((msg).encode('utf-8'))
-        self.ax.cla() 
-        self.ax.set_xlim3d(-0.2, 0.2)
-        self.ax.set_ylim3d(-0.2, 0.2)
-        self.ax.set_zlim(0, 0.3)
-        self.ax.set_xlabel('X [m]')
-        self.ax.set_ylabel('Y [m]')
-        self.ax.set_zlabel('Z [m]')
-        self.ax.grid(False)
-        self.ax.xaxis.pane.fill = False
-        self.ax.yaxis.pane.fill = False
-        self.ax.zaxis.pane.fill = False
+        self._reset_plot_axes()
         self.my_chain.plot([0.0, 0, np.pi/2, 0.0,  -np.pi, 0, 0, 0], self.ax)
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
@@ -424,17 +390,7 @@ class Window(QMainWindow, Ui_MainWindow):
         counter = 0
 
         for i in self.mrLst:
-            self.ax.cla() 
-            self.ax.set_xlim3d(-0.2, 0.2)
-            self.ax.set_ylim3d(-0.2, 0.2)
-            self.ax.set_zlim(0, 0.3)
-            self.ax.set_xlabel('X [m]')
-            self.ax.set_ylabel('Y [m]')
-            self.ax.set_zlabel('Z [m]')
-            self.ax.grid(False)
-            self.ax.xaxis.pane.fill = False
-            self.ax.yaxis.pane.fill = False
-            self.ax.zaxis.pane.fill = False
+            self._reset_plot_axes()
             a1 = -float(i[0])
             a2 = float(i[1])
             a3 = float(i[2])
@@ -443,7 +399,6 @@ class Window(QMainWindow, Ui_MainWindow):
             a6 = -float(i[5])
             newTimeStep = i[12]
             msg = "," + "runToPos" + "," + str(format(round(a1,2), '.3f')) + "," + str(format(round(a2,2), '.3f')) + "," + str(format(round(a3,2), '.3f')) + "," + str(format(round(a4,2), '.3f')) + "," + str(format(round(a5,2), '.3f')) + "," + str(format(round(a6,2), '.3f')) + "," + str(format(round(self.vmax,2), '.3f')) + "," + str(format(round(self.acceleration,2), '.3f')) + ",\n"
-            #msg = "," + "runSeq" + "," + str(format(round(a1,2), '.3f')) + "," + str(format(round(a2,2), '.3f')) + "," + str(format(round(a3,2), '.3f')) + "," + str(format(round(a4,2), '.3f')) + "," + str(format(round(a5,2), '.3f')) + "," + str(format(round(a6,2), '.3f')) + "," + str(format(round(v1,2), '.3f')) + "," + str(format(round(v2,2), '.3f')) + "," + str(format(round(v3,2), '.3f')) + "," + str(format(round(v4,2), '.3f')) + "," + str(format(round(v5,2), '.3f')) + "," + str(format(round(v6,2), '.3f')) + ",\n"
             self.ser.write((msg).encode('utf-8'))
             while(not self.stopRepeat):
                     if ((self.current_milli_time()-time_prev)>newTimeStep*(self.slowFactor+0.2)):
@@ -467,26 +422,15 @@ class Window(QMainWindow, Ui_MainWindow):
                 msg = "," + "runToPos" + "," + str(format(round(a1/self.deg2rad,2), '.3f')) + "," + str(format(round(a2/self.deg2rad,2), '.3f')) + "," + str(format(round(a3/self.deg2rad,2), '.3f')) + "," + str(format(round(a4/self.deg2rad,2), '.3f')) + "," + str(format(round(a5/self.deg2rad,2), '.3f')) + "," + str(format(round(a6/self.deg2rad,2), '.3f')) + "," + str(format(round(self.velocity,2), '.3f')) + "," + str(format(round(self.acceleration,2), '.3f')) + ",\n"
                 self.ser.write((msg).encode('utf-8'))
                 break
-        
-        self.ax.cla() 
-        self.ax.set_xlim3d(-0.2, 0.2)
-        self.ax.set_ylim3d(-0.2, 0.2)
-        self.ax.set_zlim(0, 0.3)
-        self.ax.set_xlabel('X [m]')
-        self.ax.set_ylabel('Y [m]')
-        self.ax.set_zlabel('Z [m]')
-        self.ax.grid(False)
-        self.ax.xaxis.pane.fill = False
-        self.ax.yaxis.pane.fill = False
-        self.ax.zaxis.pane.fill = False
+
+        self._reset_plot_axes()
         self.my_chain.plot([0.0, 0, np.pi/2, 0.0,  -np.pi, 0, 0, 0], self.ax)
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
 
-    
     def current_milli_time(self):
         return round(time.time() * 1000)
-    
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -494,4 +438,3 @@ if __name__ == "__main__":
     win.show()
 
     sys.exit(app.exec())
-    

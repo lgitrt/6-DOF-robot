@@ -42,13 +42,6 @@ void setup() {
   calcZeroShift();
 }
 
-int pos_array[200] = {};
-int vel_array[200] = {};
-int ts = 100;
-bool once = true;
-int prev = 0;
-int i = 0;
-
 void loop() {
   calcPos();
   calcVelocity();
