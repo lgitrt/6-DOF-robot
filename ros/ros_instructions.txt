@@ -1,0 +1,10 @@
+Starting ROS 1 on the Raspberry Pi to talk to the Arduino Mega over rosserial:
+
+    roscore
+
+    # Start serial communication with the Arduino Mega (running rosserial firmware)
+    rosrun rosserial_python serial_node.py /dev/ttyS7
+
+Then, in a separate terminal, run the teleoperation script:
+
+    python3 legacy_task_space_teleop.py

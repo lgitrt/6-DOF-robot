@@ -26,3 +26,21 @@ __pycache__/
 # OS files
 .DS_Store
 Thumbs.db
+
+# --- Large / non-source-controlled project assets ---
+# Full CAD source trees (Inventor/SolidWorks binaries, STEP/STL exports, many
+# revisions). Kept locally only - far too large and not diff-friendly for git.
+# A curated set of renders/photos is published instead under docs/images/.
+/3dModels/
+/CAD/
+
+# Raw, full-resolution photos and videos from the build log. A curated,
+# resized selection is published instead under docs/images/.
+/images_videos/
+
+# Personal / third-party reference material not meant for this repository
+# (enrollment documents, lecture notes, a cloned third-party CAD project, ...).
+/research/
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
