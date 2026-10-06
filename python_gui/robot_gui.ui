@@ -1404,7 +1404,7 @@
       <string>Hz</string>
      </property>
     </widget>
-    <widget class="QLabel" name="label_ik_iterations">
+    <widget class="QLabel" name="label_ik_budget">
      <property name="geometry">
       <rect>
        <x>70</x>
@@ -1419,10 +1419,10 @@
       </font>
      </property>
      <property name="text">
-      <string>IK iterations:</string>
+      <string>IK budget:</string>
      </property>
     </widget>
-    <widget class="QLineEdit" name="input_ik_iterations">
+    <widget class="QLineEdit" name="input_ik_budget">
      <property name="geometry">
       <rect>
        <x>270</x>
@@ -1437,7 +1437,7 @@
       </font>
      </property>
      <property name="text">
-      <string>3</string>
+      <string>100</string>
      </property>
     </widget>
     <widget class="QLabel" name="label_hertz_2">

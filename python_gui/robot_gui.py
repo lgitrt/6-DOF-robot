@@ -513,18 +513,18 @@ class Ui_MainWindow(object):
         font.setPointSize(14)
         #self.button_set_variables.setFont(font)
         #self.button_set_variables.setObjectName("button_set_variables")
-        self.label_ik_iterations = QtWidgets.QLabel(self.frame_variables)
-        self.label_ik_iterations.setGeometry(QtCore.QRect(70, 120, 181, 40))
+        self.label_ik_budget = QtWidgets.QLabel(self.frame_variables)
+        self.label_ik_budget.setGeometry(QtCore.QRect(70, 120, 181, 40))
         font = QtGui.QFont()
         font.setPointSize(14)
-        self.label_ik_iterations.setFont(font)
-        self.label_ik_iterations.setObjectName("label_ik_iterations")
-        self.input_ik_iterations = QtWidgets.QLineEdit(self.frame_variables)
-        self.input_ik_iterations.setGeometry(QtCore.QRect(270, 120, 51, 40))
+        self.label_ik_budget.setFont(font)
+        self.label_ik_budget.setObjectName("label_ik_budget")
+        self.input_ik_budget = QtWidgets.QLineEdit(self.frame_variables)
+        self.input_ik_budget.setGeometry(QtCore.QRect(270, 120, 51, 40))
         font = QtGui.QFont()
         font.setPointSize(14)
-        self.input_ik_iterations.setFont(font)
-        self.input_ik_iterations.setObjectName("input_ik_iterations")
+        self.input_ik_budget.setFont(font)
+        self.input_ik_budget.setObjectName("input_ik_budget")
         self.label_hertz_2 = QtWidgets.QLabel(self.frame_variables)
         self.label_hertz_2.setGeometry(QtCore.QRect(290, 120, 31, 40))
         font = QtGui.QFont()
@@ -678,7 +678,7 @@ class Ui_MainWindow(object):
         self.button_j6_minus.clicked.connect(self.update_j6_pos_button_minus)
 
         #ik iterations-line edit
-        self.input_ik_iterations.returnPressed.connect(self.set_ik_iterations)
+        self.input_ik_budget.returnPressed.connect(self.set_ik_optimizer_budget)
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -746,8 +746,8 @@ class Ui_MainWindow(object):
         self.button_start_repeat.setText(_translate("MainWindow", "Repeat"))
         self.label_variables.setText(_translate("MainWindow", "Variables"))
         #self.button_set_variables.setText(_translate("MainWindow", "Set Variables"))
-        self.label_ik_iterations.setText(_translate("MainWindow", "IK iterations:"))
-        self.input_ik_iterations.setText(_translate("MainWindow", "3"))
+        self.label_ik_budget.setText(_translate("MainWindow", "IK budget:"))
+        self.input_ik_budget.setText(_translate("MainWindow", "100"))
         self.label_rest_2.setText(_translate("MainWindow", "Step Size:"))
         self.input_step_size.setText(_translate("MainWindow", "10"))
         self.label_rest.setText(_translate("MainWindow", "mm/deg"))
@@ -936,7 +936,7 @@ class Ui_MainWindow(object):
 
     def home_button(self):
         self.init_run = True
-        self.ik = self.my_chain.inverse_kinematics_frame(self.start_position, self.zero_pos, orientation_mode="all")
+        self.ik = np.asarray(self.zero_pos, dtype=float)
         self.init_position()
         self.ax.cla() 
         self.ax.set_xlim3d(-0.2, 0.2)
@@ -971,9 +971,9 @@ class Ui_MainWindow(object):
         self.step_size = int(self.input_step_size.text())
         self.setFocus()
 
-    def set_ik_iterations(self):
-        self.ik_iterations = int(self.input_ik_iterations.text())
-        print("IK iterations updated: %d" % self.ik_iterations)
+    def set_ik_optimizer_budget(self):
+        self.ik_optimizer_budget = int(self.input_ik_budget.text())
+        print("IK optimizer budget updated: %d" % self.ik_optimizer_budget)
 
     def stop(self):
         self.stopRecord = True

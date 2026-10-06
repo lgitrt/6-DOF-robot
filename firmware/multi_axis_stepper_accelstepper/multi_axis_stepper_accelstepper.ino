@@ -1,4 +1,4 @@
-// 6-DOF Robotic Arm - multi-axis stepper control with AS5600 encoder feedback (AccelStepper)
+// 6-DOF Robotic Arm - step-count motion and encoder teach telemetry (AccelStepper)
 // Author: Luca Obwegs
 
 #include <AccelStepper.h>
@@ -492,5 +492,4 @@ void calcEncoderShift() {
     encoderShift6 = pos6;
   }
 }
-
 

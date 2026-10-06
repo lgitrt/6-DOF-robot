@@ -4,8 +4,8 @@ legacy_task_space_teleop.py
 ----------------------------
 Early ROS 1 prototype for task-space keyboard teleoperation of the 6-DOF arm
 (x, y, z, phi, theta, psi). It was used during the stepper/serial-control phase
-of the project, before the switch to the ROS 2 + micro-ROS architecture
-(see ../keyboard_teleop.py for the current, joint-space teleop node).
+of the project. The separate ROS 2 joint-space node is a publisher prototype;
+this repository contains no ROS 2 subscriber or micro-ROS bridge to the arm.
 
 Keyboard layout and the PublishThread structure are adapted from the
 BSD-3-Clause licensed `teleop_twist_keyboard` package

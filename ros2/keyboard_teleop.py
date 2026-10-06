@@ -6,10 +6,9 @@ Keyboard teleoperation node for the 6-DOF robotic arm.
 
 Reads single key presses from the terminal and publishes incremental joint
 position commands as a `sensor_msgs/msg/JointState` message on the
-`/joint_commands` topic. The on-board micro-ROS agent running on the
-Arduino Mega 2560 subscribes to this topic and drives the six stepper
-joints accordingly, so the same message interface is shared with the
-teach-in GUI (`qt_gui/content/Screen01.ui.qml`).
+`/joint_commands` topic. JointState positions are published in radians.
+This repository contains the publisher only; it does not include a ROS 2
+subscriber or a micro-ROS bridge to the Arduino firmware.
 
 Controls
 --------
@@ -35,33 +34,21 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import List, Tuple
+from typing import List
 
 try:
     import rclpy
     from rclpy.node import Node
     from sensor_msgs.msg import JointState
-    ROS2_AVAILABLE = True
 except ImportError:  # Allows the key-reading logic to be tested without ROS 2 installed.
     ROS2_AVAILABLE = False
+else:
+    ROS2_AVAILABLE = True
 
-JOINT_NAMES = ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"]
-
-# Maps each key to (joint_index, direction)
-KEY_BINDINGS = {
-    "q": (0, +1), "a": (0, -1),
-    "w": (1, +1), "s": (1, -1),
-    "e": (2, +1), "d": (2, -1),
-    "r": (3, +1), "f": (3, -1),
-    "t": (4, +1), "g": (4, -1),
-    "y": (5, +1), "h": (5, -1),
-}
-
-JOINT_LIMITS_DEG = [(-170.0, 170.0), (-100.0, 100.0), (-100.0, 100.0),
-                     (-170.0, 170.0), (-120.0, 120.0), (-360.0, 360.0)]
-
-RESET_KEY = " "
-QUIT_KEYS = {"\x1b", "\x03"}  # ESC, Ctrl+C
+if __package__:
+    from .teleop_logic import JOINT_NAMES, RESET_KEY, joint_state_fields, update_joint_positions
+else:
+    from teleop_logic import JOINT_NAMES, RESET_KEY, joint_state_fields, update_joint_positions
 
 
 def read_key() -> str:
@@ -84,46 +71,44 @@ def read_key() -> str:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
 
-def clamp(value: float, limits: Tuple[float, float]) -> float:
-    low, high = limits
-    return max(low, min(high, value))
+if ROS2_AVAILABLE:
+    class KeyboardTeleopNode(Node):
+        """Publishes JointState commands built up from incremental key presses."""
 
+        def __init__(self, step_deg: float, rate_hz: float) -> None:
+            super().__init__("keyboard_teleop")
+            self.step_deg = step_deg
+            self.joint_positions_deg: List[float] = [0.0] * len(JOINT_NAMES)
+            self.publisher = self.create_publisher(JointState, "/joint_commands", 10)
+            self.timer = self.create_timer(1.0 / rate_hz, self._publish_state)
 
-class KeyboardTeleopNode(Node):
-    """Publishes JointState commands built up from incremental key presses."""
-
-    def __init__(self, step_deg: float, rate_hz: float) -> None:
-        super().__init__("keyboard_teleop")
-        self.step_deg = step_deg
-        self.joint_positions_deg: List[float] = [0.0] * len(JOINT_NAMES)
-        self.publisher = self.create_publisher(JointState, "/joint_commands", 10)
-        self.timer = self.create_timer(1.0 / rate_hz, self._publish_state)
-
-    def apply_key(self, key: str) -> bool:
-        """Updates joint targets for a key press. Returns False to request quit."""
-        if key in QUIT_KEYS:
-            return False
-        if key == RESET_KEY:
-            self.joint_positions_deg = [0.0] * len(JOINT_NAMES)
-            self.get_logger().info("Joints reset to home position")
+        def apply_key(self, key: str) -> bool:
+            """Update the targets and return False when the user requests quit."""
+            self.joint_positions_deg, keep_running, joint_index = update_joint_positions(
+                self.joint_positions_deg,
+                key,
+                self.step_deg,
+            )
+            if not keep_running:
+                return False
+            if key == RESET_KEY:
+                self.get_logger().info("Joints reset to home position")
+            elif joint_index is not None:
+                self.get_logger().info(
+                    f"{JOINT_NAMES[joint_index]}: "
+                    f"{self.joint_positions_deg[joint_index]:.1f} deg"
+                )
             return True
-        binding = KEY_BINDINGS.get(key.lower())
-        if binding is None:
-            return True
-        index, direction = binding
-        new_value = self.joint_positions_deg[index] + direction * self.step_deg
-        self.joint_positions_deg[index] = clamp(new_value, JOINT_LIMITS_DEG[index])
-        self.get_logger().info(
-            f"{JOINT_NAMES[index]}: {self.joint_positions_deg[index]:.1f} deg"
-        )
-        return True
 
-    def _publish_state(self) -> None:
-        msg = JointState()
-        msg.header.stamp = self.get_clock().now().to_msg()
-        msg.name = JOINT_NAMES
-        msg.position = list(self.joint_positions_deg)
-        self.publisher.publish(msg)
+        def _publish_state(self) -> None:
+            msg = JointState()
+            msg.header.stamp = self.get_clock().now().to_msg()
+            msg.name, msg.position = joint_state_fields(self.joint_positions_deg)
+            self.publisher.publish(msg)
+else:
+    class KeyboardTeleopNode:
+        def __init__(self, step_deg: float, rate_hz: float) -> None:
+            raise RuntimeError("Install and source ROS 2 before creating the teleoperation node")
 
 
 def print_help() -> None:

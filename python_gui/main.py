@@ -21,7 +21,12 @@ from matplotlib.figure import Figure
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
-from robot_gui import Ui_MainWindow
+if __package__:
+    from .kinematics import build_target_frame, solve_inverse_kinematics
+    from .robot_gui import Ui_MainWindow
+else:
+    from kinematics import build_target_frame, solve_inverse_kinematics
+    from robot_gui import Ui_MainWindow
 
 
 class Window(QMainWindow, Ui_MainWindow):
@@ -95,9 +100,8 @@ class Window(QMainWindow, Ui_MainWindow):
         self.mm2m = 1e-3
         self.deg2rad = np.pi/180
         self.zero_pos = [0,0,1.57,0, -3.14,0,0,0]
-        self.start_position = [[1,0,0,0],[0,0,1,0.00502835], [0,1,0,0.20960934], [0,0,0,1]]
         self.init_run = True
-        self.ik_iterations = 5
+        self.ik_optimizer_budget = 100
         self.comPort = 'COM7'
         self.rotTreshHold = 0.1*self.deg2rad; #in rad
         self.ang_1 = 0
@@ -127,8 +131,8 @@ class Window(QMainWindow, Ui_MainWindow):
 
         
 
-        #calc ik for zero position
-        self.ik = self.my_chain.inverse_kinematics_frame(self.start_position, self.zero_pos, orientation_mode="all")
+        # Start from the known joint seed instead of solving a reflected pose.
+        self.ik = np.asarray(self.zero_pos, dtype=float)
         self.init_position()
 
         self.fig.tight_layout()
@@ -154,12 +158,16 @@ class Window(QMainWindow, Ui_MainWindow):
 
     def calcInverseKinematics(self):
         self._reset_plot_axes()
-        rotation_matrix = self.rotation_matrix(self.phi_pos, self.theta_pos, self.psi_pos)
-        self.target_position = [[rotation_matrix[0,0],  rotation_matrix[0,1],  rotation_matrix[0,2],  self.x_pos*self.mm2m],
-                                [rotation_matrix[2,0],  rotation_matrix[2,1],  rotation_matrix[2,2],  self.y_pos*self.mm2m], 
-                                [rotation_matrix[1,0],  rotation_matrix[1,1],  rotation_matrix[1,2],  self.z_pos*self.mm2m], 
-                                [                      0,                  0,                     0,                     1]]
-        self.ik = self.my_chain.inverse_kinematics_frame(self.target_position, self.ik, orientation_mode="all", max_iter=self.ik_iterations)
+        self.target_position = build_target_frame(
+            (self.x_pos, self.y_pos, self.z_pos),
+            (self.phi_pos, self.theta_pos, self.psi_pos),
+        )
+        self.ik = solve_inverse_kinematics(
+            self.my_chain,
+            self.target_position,
+            self.ik,
+            optimizer_budget=self.ik_optimizer_budget,
+        )
         fk = self.my_chain.forward_kinematics(self.ik)
         self.pos_error = np.linalg.norm(np.subtract([self.x_pos,self.y_pos,self.z_pos], [fk[0,3]/self.mm2m,fk[1,3]/self.mm2m,fk[2,3]/self.mm2m]))
         self.pos_error = "Positional Error: " + str(np.round(self.pos_error,1))
@@ -198,42 +206,6 @@ class Window(QMainWindow, Ui_MainWindow):
     def calcForwardKinematics(self):
         self.fk = self.my_chain.forward_kinematics([0.0, self.des_j1_pos*self.deg2rad, self.des_j2_pos*self.deg2rad, 0.0, self.des_j3_pos*self.deg2rad, self.des_j4_pos*self.deg2rad, self.des_j5_pos*self.deg2rad, self.des_j6_pos*self.deg2rad])
 
-    def rotation_angles(self, matrix):
-        """
-        input
-            matrix = 3x3 rotation matrix (numpy array)
-        output
-            theta1, theta2, theta3 = rotation angles in rotation order
-        """
-        r11, r12, r13 = matrix[0]
-        r21, r22, r23 = matrix[1]
-        r31, r32, r33 = matrix[2]
-        theta1 = np.arctan(-r23 / r33)/self.deg2rad
-        theta2 = np.arctan(r13 * np.cos(theta1) / r33)/self.deg2rad
-        theta3 = np.arctan(-r12 / r11)/self.deg2rad
-    
-        return (theta1, theta2, theta3)
-    
-    def rotation_matrix(self, theta1, theta2, theta3):
-        """
-        input
-            theta1, theta2, theta3 = rotation angles in rotation order (degrees)
-        output
-            3x3 rotation matrix (numpy array)
-        """
-        c1 = np.cos(theta1 * np.pi / 180)
-        s1 = np.sin(theta1 * np.pi / 180)
-        c2 = np.cos(theta2 * np.pi / 180)
-        s2 = np.sin(theta2 * np.pi / 180)
-        c3 = np.cos(theta3 * np.pi / 180)
-        s3 = np.sin(theta3 * np.pi / 180)
-        
-        matrix=np.array([[c2*c3, -c2*s3, s2],
-                        [c1*s3+c3*s1*s2, c1*c3-s1*s2*s3, -c2*s1],
-                        [s1*s3-c1*c3*s2, c3*s1+c1*s2*s3, c1*c2]])
-
-        return matrix
-    
     def init_position(self):
         #set sliders
         self.slider_x.setValue(int(self.x_zero_pos))
