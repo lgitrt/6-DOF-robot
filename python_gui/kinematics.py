@@ -27,6 +27,7 @@ def rotation_matrix(phi_deg: float, theta_deg: float, psi_deg: float) -> np.ndar
         [spsi, cpsi, 0.0],
         [0.0, 0.0, 1.0],
     ])
+    # Matrix order matters: these Euler inputs use Rx @ Ry @ Rz, not Rz @ Ry @ Rx.
     return rotate_x @ rotate_y @ rotate_z
 
 
@@ -59,6 +60,7 @@ def build_target_frame(
         raise ValueError("Position and orientation values must be finite")
 
     frame = np.eye(4)
+    # Homogeneous pose [R p; 0 1]: R is dimensionless and URDF translation is metres.
     frame[:3, :3] = rotation_matrix(*orientation)
     frame[:3, 3] = position / 1000.0
     return validate_target_frame(frame)
@@ -74,6 +76,8 @@ def solve_inverse_kinematics(
     frame = validate_target_frame(target_frame)
     if optimizer_budget < 1:
         raise ValueError("optimizer_budget must be at least 1")
+    # "all" minimizes position and all three rotation-axis residuals via IKPY.
+    # The initial joint vector seeds the bounded nonlinear least-squares solve.
     return chain.inverse_kinematics_frame(
         frame,
         initial_position,

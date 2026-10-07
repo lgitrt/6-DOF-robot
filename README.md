@@ -57,6 +57,26 @@ The project start date remains **Early 2022**; no completion date is inferred fr
 
 ## Coordinate and unit conventions
 
+The GUI uses IKPY's bounded nonlinear least-squares solver to minimize the Cartesian
+position error together with the weighted, flattened difference between the target
+and forward-kinematics rotation matrices. It optimizes the URDF chain's active joint
+angles within their limits, using the previous solution as the initial guess; this
+is not a custom Jacobian-pseudoinverse implementation.
+
+### Where to start reading the software
+
+- [`python_gui/kinematics.py`](python_gui/kinematics.py): `rotation_matrix()`,
+  `build_target_frame()` and `solve_inverse_kinematics()` construct and validate the
+  target pose and call IKPY. This is the Python IK entry point, not a C++ solver.
+- [`python_gui/main.py`](python_gui/main.py): `calcInverseKinematics()` connects the GUI pose
+  inputs to the solver and checks the resulting forward-kinematics position.
+- [`ros2/keyboard_teleop.py`](ros2/keyboard_teleop.py) and
+  [`ros2/teleop_logic.py`](ros2/teleop_logic.py): Python ROS 2 publishing and
+  independently testable joint-command logic.
+- [`firmware/`](firmware/): separate Arduino motion and encoder sketches.
+- [`tests/test_kinematics.py`](tests/test_kinematics.py): frame conventions,
+  rotation validity and a forward/inverse-kinematics round trip.
+
 The IK target frame uses the right-handed `base_link` frame defined by
 [`python_gui/arm_urdf.urdf`](python_gui/arm_urdf.urdf): GUI `x`, `y`, and `z` values are millimetres
 along the corresponding URDF axes (`z` is the vertical axis), and the helper converts them directly
